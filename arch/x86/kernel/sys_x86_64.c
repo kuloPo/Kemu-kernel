@@ -86,9 +86,29 @@ SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
 	return ksys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
 }
 
+static bool map_digitalis(unsigned long flags)
+{
+	return !in_32bit_syscall() && (flags & MAP_DIGITALIS);
+}
+
 static void find_start_end(unsigned long addr, unsigned long flags,
 		unsigned long *begin, unsigned long *end)
 {
+	if (map_digitalis(flags)) {
+		/*
+		 * Translated code is reached through zero-extended 32bit
+		 * addresses and rel32 branches. Stop a page below 4GB so
+		 * that the end of every mapping is still a 32bit address.
+		 * MAP_DIGITALIS overrides MAP_32BIT, so callers can pass
+		 * both and get MAP_32BIT on kernels without MAP_DIGITALIS.
+		 */
+		*begin = SZ_2G;
+		*end = SZ_4G - PAGE_SIZE;
+		if (current->flags & PF_RANDOMIZE)
+			*begin = randomize_page(*begin, 0x02000000);
+		return;
+	}
+
 	if (!in_32bit_syscall() && (flags & MAP_32BIT)) {
 		/* This is usually used needed to map code in small
 		   model, so it needs to be in the first 31bit. Limit
@@ -141,6 +161,7 @@ arch_get_unmapped_area(struct file *filp, unsigned long addr, unsigned long len,
 		addr = PAGE_ALIGN(addr);
 		vma = find_vma(mm, addr);
 		if (end - len >= addr &&
+		    (!map_digitalis(flags) || addr >= SZ_2G) &&
 		    (!vma || addr + len <= vm_start_gap(vma)))
 			return addr;
 	}
@@ -175,8 +196,8 @@ arch_get_unmapped_area_topdown(struct file *filp, unsigned long addr0,
 	if (flags & MAP_FIXED)
 		return addr;
 
-	/* for MAP_32BIT mappings we force the legacy mmap base */
-	if (!in_32bit_syscall() && (flags & MAP_32BIT))
+	/* for MAP_32BIT and MAP_DIGITALIS mappings we force the legacy mmap base */
+	if (!in_32bit_syscall() && (flags & (MAP_32BIT | MAP_DIGITALIS)))
 		goto bottomup;
 
 	/* requesting a specific address */

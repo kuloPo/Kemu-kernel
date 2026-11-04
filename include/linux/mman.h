@@ -19,6 +19,9 @@
 #ifndef MAP_ABOVE4G
 #define MAP_ABOVE4G 0
 #endif
+#ifndef MAP_DIGITALIS
+#define MAP_DIGITALIS 0
+#endif
 #ifndef MAP_HUGE_2MB
 #define MAP_HUGE_2MB 0
 #endif
@@ -55,6 +58,7 @@
 		| MAP_HUGETLB \
 		| MAP_32BIT \
 		| MAP_ABOVE4G \
+		| MAP_DIGITALIS \
 		| MAP_HUGE_2MB \
 		| MAP_HUGE_1GB)
 

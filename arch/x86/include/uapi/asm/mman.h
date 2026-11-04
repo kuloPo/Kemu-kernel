@@ -4,6 +4,7 @@
 
 #define MAP_32BIT	0x40		/* only give out 32bit addresses */
 #define MAP_ABOVE4G	0x80		/* only map above 4GB */
+#define MAP_DIGITALIS	0x200		/* only map between 2GB and 4GB */
 
 /* Flags for map_shadow_stack(2) */
 #define SHADOW_STACK_SET_TOKEN	(1ULL << 0)	/* Set up a restore token in the shadow stack */
